@@ -4,6 +4,8 @@
 
 ;;; License:
 
+;; Copyright (C) 2023 Max Penet
+
 ;; This program is free software: you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
 ;; published by the Free Software Foundation, either version 3 of the
@@ -66,6 +68,10 @@
     (message "Connected! %s" (funcall cider-connection-message-fn))))
 
 (add-hook 'cider-connected-hook #'cider--maybe-inspire-on-connect)
+;; change evaluation for evil-mode
+(with-eval-after-load 'clojure-mode
+  (define-key cider-mode-map (kbd "C-c C-e") #'cider-eval-sexp-up-to-point)
+  (define-key cider-mode-map (kbd "C-x C-e") #'cider-eval-sexp-up-to-point))
 
 (install-ifna 'magit)
 (global-set-key (kbd "C-c g") #'magit-status)
