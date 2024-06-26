@@ -4,7 +4,7 @@
 
 ;;; License:
 
-;; Copyright (C) 2023 Max Penet
+;; Copyright (C) 2023 João Lanjoni
 
 ;; This program is free software: you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -86,8 +86,19 @@
 (install-ifna 'doom-themes)
 (load-theme 'doom-ir-black t)
 
+;; my goal if I focus on emacs
+;; usage is to disable this...
 (install-ifna 'evil)
 (evil-mode 1)
+
+(define-key evil-normal-state-map (kbd "C-h") #'evil-window-left)
+(define-key evil-normal-state-map (kbd "C-j") #'evil-window-down)
+(define-key evil-normal-state-map (kbd "C-k") #'evil-window-up)
+(define-key evil-normal-state-map (kbd "C-l") #'evil-window-right)
+
+(install-ifna 'treemacs)
+(setq treemacs-position 'left)
+(define-key global-map (kbd "M-t") 'treemacs)
 
 (install-ifna 'exec-path-from-shell)
 (exec-path-from-shell-initialize)
@@ -118,6 +129,9 @@
 (setq-default tab-width 2)
 (setq-default tab-always-indent t)
 (setq-default indent-tabs-mode nil)
+
+;; disable bell
+(setq ring-bell-function 'ignore)
 
 (cua-mode) ;; ctrl-c ctrl-v
 
