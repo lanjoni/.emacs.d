@@ -20,91 +20,149 @@
 (setq default-fill-column 80)	; toggle wrapping text at the 80th character
 (setq initial-scratch-message "Welcome to Emacs") ; print a default message in the empty scratch buffer opened at startup
 
-;; packages
 (require 'package)
 
-(custom-set-variables
- '(package-archives
-   (quote (("gnu"    . "https://elpa.gnu.org/packages/")
-	         ("nongnu" . "https://elpa.nongnu.org/nongnu/")
-           ("melpa"  . "https://melpa.org/packages/")))))
+;; Use Package
 
-(setq custom-theme-directory (concat user-emacs-directory "themes"))
-(dolist
-    (path (directory-files custom-theme-directory t "\\w+"))
-  (when (file-directory-p path)
-    (add-to-list 'custom-theme-load-path path)))
+(setq package-enable-at-startup nil) ; tells emacs not to load any packages before starting up
+;; the following lines tell emacs where on the internet to look up
+;; for new packages.
+(setq package-archives '(("org"       . "http://orgmode.org/elpa/")
+                         ("gnu"       . "http://elpa.gnu.org/packages/")
+                         ("melpa"     . "https://melpa.org/packages/")))
+(package-initialize)
 
-(add-to-list 'load-path (expand-file-name "lisp/" user-emacs-directory))
+;; Bootstrap `use-package'
+(unless (package-installed-p 'use-package) ; unless it is already installed
+  (package-refresh-contents) ; updage packages archive
+  (package-install 'use-package)) ; and install the most recent version of use-package
 
-(unless package-archive-contents
-  (progn
-    (package-initialize)))
+(eval-when-compile
+  (require 'use-package))
 
-(defun install-ifna (pkg)
-  "Install PKG if not already."
-  (unless (package-installed-p pkg)
-    (package-install pkg)))
+(use-package general
+  :ensure t
+  :config (general-define-key "C-'" 'avy-goto-word-1))
 
-;; general packages
-(install-ifna 'corfu)
-(add-hook 'prog-mode-hook #'corfu-mode)
+(use-package avy
+  :ensure t
+  :commands (avy-goto-word-1))
 
-(install-ifna 'lsp-mode)
-(defun lsp-install-save-hooks ()
-  "Hooks for lsp interaction."
-  (progn
-    (add-hook 'before-save-hook #'lsp-format-buffer t t)
-    (add-hook 'after-save-hook #'lsp-organize-imports t t)
-    (lsp)))
+(use-package which-key
+  :ensure t
+  :config (which-key-mode))
 
-;; magit
-(install-ifna 'magit)
-(global-set-key (kbd "C-c g") #'magit-status)
-(global-set-key (kbd "C-x m") #'magit)
+(use-package flx
+  :ensure t)
 
-;; elcord - for discord
-(install-ifna 'elcord)
-(elcord-mode)
+(use-package corfu
+  :ensure t
+  :init (add-hook 'prog-mode-hook #'corfu-mode))
 
-;; ivy
-(install-ifna 'ivy)
-(ivy-mode)
-(setq ivy-use-virtual-buffers t)
-(setq enable-recursive-minibuffers t)
+(use-package magit
+  :ensure t
+  :defer t
+  :bind (("C-c g" . magit-status)
+         ("C-x m" . magit)))
 
-;; helm
-(install-ifna 'helm)
-(require 'helm)
+(use-package ivy
+  :ensure t
+  :config (ivy-mode)
+  :init (setq enable-recursive-minibuffers t))
 
-(install-ifna 'helm-projectile)
-(require 'helm-projectile)
-(helm-projectile-on)
+(use-package projectile
+  :ensure t
+  :init (projectile-mode +1)
+  :config (setq projectile-completion-system 'ivy))
 
-;; projectile
-(install-ifna 'projectile)
-(require 'projectile)
-(define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
-(projectile-mode +1)
-(setq projectile-completion-system 'ivy)
+(use-package helm
+  :ensure t)
 
-;; paredit
-(install-ifna 'paredit)
-(require 'paredit)
+(use-package helm-projectile
+  :ensure t
+  :config (helm-projectile-on))
 
-;; evil-mode
-;; note: my goal if I focus on
-;; emacs usage is to disable this...
-(setq evil-want-integration t)
-(setq evil-want-keybinding nil)
+(use-package paredit
+  :ensure t)
 
-(install-ifna 'evil)
-(evil-mode 1)
+(use-package cider
+  :defer t
+  :ensure t
+  :config
+  (setq cider-repl-buffer-size-limit 10000)
+  (setq cider-repl-use-clojure-font-lock nil)
+  (defun cider--maybe-inspire-on-connect ()
+    "Display an inspiration connection message."
+    (when cider-connection-message-fn
+      (message "Connected! %s" (funcall cider-connection-message-fn))))
 
-(install-ifna 'evil-collection)
-(evil-collection-init)
+  (define-key cider-mode-map (kbd "C-x C-e") #'cider-eval-sexp-up-to-point)
+  (define-key cider-mode-map (kbd ", e e")   #'cider-eval-sexp-up-to-point)
+  (define-key cider-mode-map (kbd ", e b")   #'cider-load-buffer)
+  (define-key cider-mode-map (kbd ", r r")   #'cider-switch-to-repl-buffer)
+  (define-key cider-mode-map (kbd ", n s")   #'cider-repl-set-ns))
 
-;; simple window navigation
+(use-package clojure-mode
+  :defer t
+  :ensure t
+  :config
+  (add-hook 'clojure-mode-hook #'lsp-install-save-hooks)
+  (add-hook 'clojure-mode-hook #'cider-auto-test-mode)
+  (add-hook 'cider-connected-hook #'cider--maybe-inspire-on-connect))
+
+(use-package evil-collection
+  :ensure t
+  :defer t
+  :config (evil-collection-init))
+
+(use-package evil
+  :ensure t
+  :config (evil-mode)
+  :init
+  (setq evil-want-integration t)
+  (setq evil-want-keybinding nil))
+
+(use-package lsp-mode
+  :ensure t
+  :init (defun lsp-install-save-hooks ()
+          "Hooks for lsp interaction."
+          (progn
+            (add-hook 'before-save-hook #'lsp-format-buffer t t)
+            (add-hook 'after-save-hook #'lsp-organize-imports t t)
+            (lsp))))
+
+;; tremacs
+(use-package treemacs
+  :defer t
+  :ensure t
+  :config
+  (treemacs-follow-mode t)
+  (treemacs-filewatch-mode t)
+  (treemacs-fringe-indicator-mode 'always)
+
+  (setq treemacs-position 'left))
+
+(use-package treemacs-nerd-icons
+  :defer t
+  :ensure t
+  :config (treemacs-load-theme "nerd-icons"))
+
+(use-package treemacs-evil
+  :defer t
+  :ensure t
+  :after (treemacs evil))
+
+(use-package treemacs-projectile
+  :defer t
+  :ensure t
+  :after (treemacs projectile))
+
+(use-package exec-path-from-shell
+  :ensure t
+  :init (exec-path-from-shell-initialize))
+
+;; keybinds
+;; better window navigation
 (define-key evil-normal-state-map (kbd "C-h") #'evil-window-left)
 (define-key evil-normal-state-map (kbd "C-j") #'evil-window-down)
 (define-key evil-normal-state-map (kbd "C-k") #'evil-window-up)
@@ -129,67 +187,13 @@
 (define-key evil-normal-state-map (kbd "SPC f f") #'helm-projectile-find-file)
 (define-key evil-normal-state-map (kbd "SPC f g") #'helm-do-grep-ag)
 
-;; Ensure evil-mode is loaded before modifying key bindings
-(with-eval-after-load 'evil
-  ;; Unbind `,` from `evil-repeat-find-char-reverse` in evil motion state
-  (define-key evil-motion-state-map (kbd ",") nil)
+(define-key evil-motion-state-map (kbd ",") nil)
 
-  ;; Rebind `evil-repeat-find-char-reverse` to another key, e.g., ";"
-  (define-key evil-motion-state-map (kbd ";") 'evil-repeat-find-char-reverse))
-
-;; clojure
-(install-ifna 'cider)
-(install-ifna 'clojure-mode)
-
-(setq cider-repl-buffer-size-limit 10000)
-(setq cider-repl-use-clojure-font-lock nil)
-(defun cider--maybe-inspire-on-connect ()
-  "Display an inspiration connection message."
-  (when cider-connection-message-fn
-    (message "Connected! %s" (funcall cider-connection-message-fn))))
-
-(add-hook 'clojure-mode-hook #'lsp-install-save-hooks)
-(add-hook 'clojure-mode-hook #'cider-auto-test-mode)
-(add-hook 'cider-connected-hook #'cider--maybe-inspire-on-connect)
-
-;; change evaluation for evil-mode
-(with-eval-after-load 'clojure-mode
-  (define-key cider-mode-map (kbd "C-c C-e") #'cider-eval-sexp-up-to-point)
-  (define-key cider-mode-map (kbd "C-x C-e") #'cider-eval-sexp-up-to-point)
-  (define-key cider-mode-map (kbd ", e e") #'cider-eval-sexp-up-to-point)
-
-  (define-key cider-mode-map (kbd ", e b") #'cider-load-buffer)
-  (define-key cider-mode-map (kbd ", r r") #'cider-switch-to-repl-buffer)
-  (define-key cider-mode-map (kbd ", n s") #'cider-repl-set-ns))
-
-;; theme configuration
-(install-ifna 'modus-themes)
-(install-ifna 'doom-themes)
-
-(defun use-default-theme ()
-  (interactive)
-  (load-theme 'default-black))
-
-(use-default-theme)
+;; Rebind `evil-repeat-find-char-reverse` to another key, e.g., ";"
+(define-key evil-motion-state-map (kbd ";") 'evil-repeat-find-char-reverse)
 
 ;; treemacs
-;; note: my goal is also to
-;; don't use treemacs anymore
-(install-ifna 'treemacs)
-(install-ifna 'treemacs-nerd-icons)
-
-(require 'treemacs-nerd-icons)
-(treemacs-load-theme "nerd-icons")
-
-(setq treemacs-position 'left)
-(treemacs-follow-mode)
-
-(treemacs-project-follow-mode)
 (define-key global-map (kbd "M-t") 'treemacs)
-
-;; exec-path-from-shell
-(install-ifna 'exec-path-from-shell)
-(exec-path-from-shell-initialize)
 
 ;; utils
 (electric-pair-mode 1)
@@ -226,6 +230,18 @@
 
 ;; ctrl-c ctrl-v
 (cua-mode)
+
+;; theme
+(setq custom-theme-directory (concat user-emacs-directory "themes"))
+(dolist
+    (path (directory-files custom-theme-directory t "\\w+"))
+  (when (file-directory-p path)
+    (add-to-list 'custom-theme-load-path path)))
+
+(defun use-default-theme ()
+  (interactive)
+  (load-theme 'default-black))
+(use-default-theme)
 
 ;; font-face
 (set-face-attribute
