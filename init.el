@@ -6,12 +6,14 @@
 ;; some defaults (https://sam217pa.github.io/2016/09/02/how-to-build-your-own-spacemacs/)
 (setq delete-old-versions -1) ; delete excess backup versions silently
 (setq version-control t) ; use version control
-(setq vc-make-backup-files t)	; make backups file even when in version controlled dir
+(setq vc-make-backup-files nil)	; make backups file even when in version controlled dir
+(setq make-backup-files nil)
 (setq backup-directory-alist `(("." . "~/.emacs.d/backups"))) ; which directory to put backups file
 (setq vc-follow-symlinks t)	; don't ask for confirmation when opening symlinked file
 ;; (setq auto-save-file-name-transforms '((".*" "~/.emacs.d/auto-save-list/" t))) ;transform backups file name
 ;; disable auto-save for now
 (setq auto-save-default nil)
+(auto-save-mode -1)
 (setq inhibit-startup-screen t)	; inhibit useless and old-school startup screen
 (setq ring-bell-function 'ignore) ; silent bell when you make a mistake
 (setq coding-system-for-read 'utf-8) ; use utf-8 by default
@@ -55,10 +57,6 @@
 (use-package flx
   :ensure t)
 
-(use-package corfu
-  :ensure t
-  :init (add-hook 'prog-mode-hook #'corfu-mode))
-
 (use-package magit
   :ensure t
   :defer t
@@ -73,7 +71,9 @@
 (use-package projectile
   :ensure t
   :init (projectile-mode +1)
-  :config (setq projectile-completion-system 'ivy))
+  :config
+  (setq projectile-completion-system 'ivy)
+  (add-to-list 'projectile-globally-ignored-directories ".clj-kondo"))
 
 (use-package helm
   :ensure t)
@@ -122,14 +122,29 @@
   (setq evil-want-integration t)
   (setq evil-want-keybinding nil))
 
+;; lsp
+(use-package company
+  :defer t
+  :ensure t)
+
 (use-package lsp-mode
   :ensure t
-  :init (defun lsp-install-save-hooks ()
-          "Hooks for lsp interaction."
-          (progn
-            (add-hook 'before-save-hook #'lsp-format-buffer t t)
-            (add-hook 'after-save-hook #'lsp-organize-imports t t)
-            (lsp))))
+  :defer t
+  :hook ((clojure-mode . lsp)
+         (clojurec-mode . lsp)
+         (clojurescript-mode . lsp))
+  :init
+  (defun lsp-install-save-hooks ()
+    "Hooks for lsp interaction."
+    (progn
+      (add-hook 'before-save-hook #'lsp-format-buffer t t)
+      (add-hook 'after-save-hook #'lsp-organize-imports t t)
+      (lsp))))
+
+(use-package lsp-ui
+  :defer t
+  :ensure t
+  :commands lsp-ui-mode)
 
 ;; tremacs
 (use-package treemacs
@@ -194,6 +209,19 @@
 
 ;; treemacs
 (define-key global-map (kbd "M-t") 'treemacs)
+
+;; copilot
+(add-to-list 'load-path "~/.emacs.d/copilot.el")
+(require 'copilot)
+
+(add-hook 'prog-mode-hook 'copilot-mode)
+
+(define-key copilot-completion-map (kbd "<tab>") 'copilot-accept-completion)
+(define-key copilot-completion-map (kbd "TAB") 'copilot-accept-completion)
+
+(add-to-list 'copilot-major-mode-alist '("clojure"))
+(add-to-list 'copilot-indentation-alist '(clojure-mode 2))
+(add-to-list 'copilot-indentation-alist '(emacs-lisp-mode . 2))
 
 ;; utils
 (electric-pair-mode 1)

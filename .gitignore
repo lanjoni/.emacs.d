@@ -12,6 +12,15 @@ site-lisp/adventur-mode
 .DS_Store
 .yas-compiled-snippets.el
 .cask
+.lsp-session-v1
+.cache/
+.lsp-session-v1
+copilot.el/
+custom.el
+eshell/
+places
+quelpa/
+workspace/
 /url/
 /var/
 /.sx/
