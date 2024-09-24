@@ -25,7 +25,6 @@
 (require 'package)
 
 ;; Use Package
-
 (setq package-enable-at-startup nil) ; tells emacs not to load any packages before starting up
 ;; the following lines tell emacs where on the internet to look up
 ;; for new packages.
