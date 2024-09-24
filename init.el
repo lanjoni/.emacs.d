@@ -57,6 +57,12 @@
 (use-package flx
   :ensure t)
 
+(use-package pinentry
+  :ensure t
+  :defer t
+  :config
+  (pinentry-start))
+
 (use-package magit
   :ensure t
   :defer t
